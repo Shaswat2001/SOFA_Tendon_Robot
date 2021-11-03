@@ -1,0 +1,182 @@
+import Sofa
+from stlib3.scene import Scene
+# A prefab that implements an ElasticMaterialObject
+from stlib3.physics.deformable import ElasticMaterialObject
+from stlib3.visuals import VisualModel
+
+from FingerController import FingerController
+
+def createScene(rootNode):
+    rootNode.addObject("RequiredPlugin", pluginName = ["SoftRobots",'SofaConstraint','SofaEngine','SofaLoader','SofaDeformable','SofaGeneralLoader','SofaSparseSolver','SofaImplicitOdeSolver','SofaMiscCollision','SofaSimpleFem'])
+    scene = Scene(rootNode,dt=0.01,gravity=[0,0,0])
+
+    rootNode.addObject("FreeMotionAnimationLoop")
+    rootNode.addObject("GenericConstraintSolver", maxIterations=1000, tolerance=0.001)
+    # rootNode.addObject("DefaultPipeline",name="PipeLine")
+    # #rootNode.addObject("BruteForceBroadPhase",name="N2")
+    # rootNode.addObject("MinProximityIntersection",name="Proximity",alarmDistance=0.8,contactDistance=0.5)
+    # #rootNode.addObject("BVHNarrowPhase")
+    # rootNode.addObject("DefaultContactManager",name="Response",response="default")
+    # Adding Rigid Disk
+
+    TendonRobot = rootNode.addChild("TendonRobot")
+    TendonRobot.addObject("EulerImplicitSolver")
+    TendonRobot.addObject("SparseLDLSolver",name="solver")
+    TendonRobot.addObject("MeshGmshLoader",name = "DiskLoader", filename = "Mesh/RobotD10.msh")
+    TendonRobot.addObject("TetrahedronSetTopologyContainer",name="topo",src="@DiskLoader")
+    TendonRobot.addObject("TetrahedronSetGeometryAlgorithms",name="DiskAlgo",template="Vec3d")
+    TendonRobot.addObject("MechanicalObject",name="DiskObj",template="Vec3d",showObject=1)
+    TendonRobot.addObject("TetrahedronFEMForceField",name="FEM",youngModulus=1000,localStiffnessFactor = [1e8,1e2,1e8,1e2,1e8,1e2,1e8], poissonRatio=0.4,method="large")
+    TendonRobot.addObject('UniformMass', totalMass=100, name='mass')
+    TendonRobot.addObject('LinearSolverConstraintCorrection')
+    # TndCollision = TendonRobot.addChild("TndCollision")
+    # TndCollision.addObject("MeshGmshLoader",name = "CollLoader", filename = "Mesh/Tendon_Extrude.msh")
+    # TndCollision.addObject("MeshTopology",src="@CollLoader")
+    # TndCollision.addObject("MechanicalObject",src="@CollLoader")
+    # TndCollision.addObject("TriangleCollisionModel")
+    # TndCollision.addObject("LineCollisionModel")
+    # TndCollision.addObject("PointCollisionModel")
+    # TndCollision.addObject("SubsetMapping")
+    # Spring = TendonRobot.addChild("SpringROI")
+    # Spring.addObject("MeshObjLoader", name = "ROIloader",filename="Mesh/Spring.obj",scale=0.2,translation=[0,5,0],rotation=[0,0,0])
+    # Spring.addObject("MeshROI",name="ROIm",drawMesh=0,drawBox=0,drawEdges=0,drawTriangles=1,drawTetrahedra=1,drawOut=0,computeMeshROI=1,doUpdate=0,position="@../DiskObj.position",tetrahedra="@../DiskLoader.tetrahedra",ROIposition="@ROIloader.position",ROItriangles="@ROIloader.triangles")
+    # TendonRobot.addObject("IndexValueMapper",name="ind_Out",indices="@SpringROI/ROIm.tetrahedronOutIndices",value=1000)
+    # TendonRobot.addObject("IndexValueMapper",name="ind_Total",inputValues="@ind_Out.outputValues",indices="@SpringROI/ROIm.tetrahedronIndices",value=1e-7)
+    # TendonRobot.addObject("TetrahedronFEMForceField",name="FEM",youngModulus="@ind_Total.outputValues", poissonRatio=0.4,method="large")
+    # Spring = rootNode.addChild("Spring")
+    # Spring.addObject("EulerImplicitSolver")
+    # Spring.addObject("SparseLDLSolver",name="solver")
+    # Spring.addObject("MeshGmshLoader",name = "SpringLoader", filename = "Mesh/Spring.msh")
+    # Spring.addObject("TetrahedronSetTopologyContainer",name="Springtopo",src="@SpringLoader")
+    # Spring.addObject("TetrahedronSetGeometryAlgorithms",name="SpringAlgo",template="Vec3d")
+    # Spring.addObject("MechanicalObject",name="SpringObj",template="Vec3d",showObject=1,translation=[0,0,0])
+    # Spring.addObject("TetrahedronFEMForceField",name="SFEM",youngModulus=1e8, poissonRatio=0.4,method="large")
+    # Spring.addObject('UniformMass', totalMass=100, name='mass')
+    # Spring.addObject('LinearSolverConstraintCorrection')
+    
+    # rootNode.addObject('AttachConstraint', object1="@TendonRobot/DiskObj", object2="@Spring/SpringObj", indices1="433 452 435 448 449 \
+    #                                                                                                               462 459 464 434 438 \
+    #                                                                                                               303 313 302 296 315 \
+    #                                                                                                               284 305 297 285 317 \
+    #                                                                                                               332 351 325 347 343 \
+    #                                                                                                               322 328 321 334 345 \
+    #                                                                                                               380 357 386 375 384 \
+    #                                                                                                               360 365 392 356 370 \
+    #                                                                                                               254 279 262 248 261 \
+    #                                                                                                               259 249 266 247 258 \
+    #                                                                                                               180 198 203 188 178 \
+    #                                                                                                               191 195 176 197 196", 
+                                                                                                        
+    #                                                                                                     indices2="9 63 62 61 60 \
+    #                                                                                                               8 79 78 77 76 \
+    #                                                                                                               28 1 15 14 13 \
+    #                                                                                                               12 0 31 30 29 \
+    #                                                                                                               69 68 10 83 82 \
+    #                                                                                                               81 80 11 71 70 \
+    #                                                                                                               53 54 55 4 36 \
+    #                                                                                                               37 38 39 5 52 \
+    #                                                                                                               57 58 59 6 44 \
+    #                                                                                                               45 46 47 7 56 \
+    #                                                                                                               22 23 3 32 33 \
+    #                                                                                                               34 35 2 20 21", 
+                                                                                                        
+    #                                                                                                     constraintFactor="1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1 \
+    #                                                                                                                       1 1 1 1 1")
+    
+    # TendonRobot = ElasticMaterialObject(name = "TendonRobot",volumeMeshFileName="Mesh/Robot.msh",poissonRatio=0.45,youngModulus=11e7,totalMass=100,translation=[0,0,0])
+    # Spring = ElasticMaterialObject(name = "Spring",volumeMeshFileName="Mesh/Spring.msh",poissonRatio=0.45,youngModulus=1000,totalMass=100,translation=[0,5,0])
+    rootNode.addChild(TendonRobot)
+    #rootNode.addChild(Spring)
+
+    TendonRobot.addObject('BoxROI', name='ROI1', box=[-30, 0, -30, 30, 4, 30], drawBoxes=True)
+    TendonRobot.addObject('RestShapeSpringsForceField', points='@ROI1.indices', stiffness=1e12)
+
+
+    cable1 = TendonRobot.addChild("cable1")
+
+    cable1.addObject('MechanicalObject',
+			position=[
+			[11.5, 1, 11.5],
+            [11.5, 3, 11.5],
+            [11.5,41,11.5],
+            [11.5,43,11.5],
+            [11.5,81,11.5],
+            [11.5,83,11.5],
+            [11.5,121,11.5],
+            [11.5,123,11.5]])
+
+    cable1.addObject('CableConstraint', name="aCableActuator",
+			indices=list(range(0,8)),
+			pullPoint=[11.5, -12.5, 11.5])
+
+    cable1.addObject('BarycentricMapping')
+    cable1.addObject(FingerController(node=cable1))
+
+    cable2 = TendonRobot.addChild("cable2")
+
+    cable2.addObject('MechanicalObject',
+			position=[
+			[11.5, 1, -11.5],
+            [11.5, 3, -11.5],
+            [11.5,41,-11.5],
+            [11.5,43,-11.5],
+            [11.5,81,-11.5],
+            [11.5,83,-11.5],
+            [11.5,121,-11.5],
+            [11.5,123,-11.5]])
+
+    cable2.addObject('CableConstraint', name="aCableActuator2",
+			indices=list(range(0,8)),
+			pullPoint=[11.5, -12.5, -11.5])
+
+    cable2.addObject('BarycentricMapping')
+
+    cable4 = TendonRobot.addChild("cable4")
+
+    cable4.addObject('MechanicalObject',
+			position=[
+			[-11.5, 1,11.5],
+            [-11.5, 3,11.5],
+            [-11.5,41,11.5],
+            [-11.5,43,11.5],
+            [-11.5,81,11.5],
+            [-11.5,83,11.5],
+            [-11.5,121,11.5],
+            [-11.5,123,11.5]])
+
+    cable4.addObject('CableConstraint', name="aCableActuator4",
+			indices=list(range(0,8)),
+			pullPoint=[-11.5, -12.5, 11.5])
+
+    cable4.addObject('BarycentricMapping')
+
+    cable3 = TendonRobot.addChild("cable3")
+
+    cable3.addObject('MechanicalObject',
+			position=[
+			[-11.5, 1, -11.5],
+            [-11.5, 3, -11.5],
+            [-11.5,41,-11.5],
+            [-11.5,43,-11.5],
+            [-11.5,81,-11.5],
+            [-11.5,83,-11.5],
+            [-11.5,121,-11.5],
+            [-11.5,123,-11.5]])
+
+    cable3.addObject('CableConstraint', name="aCableActuator3",
+			indices=list(range(0,8)),
+			pullPoint=[-11.5, -12.5, -11.5])
+
+    cable3.addObject('BarycentricMapping')
+
+    return rootNode

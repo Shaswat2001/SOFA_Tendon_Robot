@@ -1,0 +1,153 @@
+import Sofa
+from stlib3.scene import Scene
+# A prefab that implements an ElasticMaterialObject
+from stlib3.physics.deformable import ElasticMaterialObject
+from stlib3.visuals import VisualModel
+
+from FingerController import FingerController
+
+def createScene(rootNode):
+    rootNode.addObject("RequiredPlugin", pluginName = ["SoftRobots",'SofaConstraint','SofaEngine','SofaLoader','SofaDeformable','SofaGeneralLoader','SofaSparseSolver','SofaImplicitOdeSolver','SofaMiscCollision','SofaSimpleFem'])
+    scene = Scene(rootNode,dt=0.01,gravity=[0,9810,0])
+
+    rootNode.addObject("FreeMotionAnimationLoop")
+    rootNode.addObject("GenericConstraintSolver", maxIterations=1000, tolerance=0.001)
+
+    # Disk Physics Model
+    TendonRobot = rootNode.addChild("TendonRobot")
+    TendonRobot.addObject("EulerImplicitSolver")
+    TendonRobot.addObject("SparseLDLSolver",name="solver")
+    TendonRobot.addObject("MeshGmshLoader",name = "DiskLoader", filename = "Mesh/Tendon_10D.msh")
+    TendonRobot.addObject("TetrahedronSetTopologyContainer",name="topo",src="@DiskLoader")
+    TendonRobot.addObject('TetrahedronSetTopologyModifier')
+    TendonRobot.addObject("TetrahedronSetGeometryAlgorithms",name="DiskAlgo",template="Vec3d")
+    TendonRobot.addObject("MechanicalObject",name="DiskObj",template="Vec3d",showObject=1)
+    TendonRobot.addObject("TetrahedronFEMForceField",name="FEM",youngModulus=1e8, poissonRatio=0.1,method="large")
+    TendonRobot.addObject('UniformMass', totalMass=100, name='mass')
+    TendonRobot.addObject('LinearSolverConstraintCorrection')
+
+    # Disk Interface Model
+
+    TendonConnection = TendonRobot.addChild("TendonConnection")
+    TendonConnection.addObject("MeshSTLLoader",filename='Mesh/Tendon_10D_Limited.stl', name='loader')
+    TendonConnection.addObject("MeshTopology",position='@loader.position', triangles='@loader.triangles', name='mesh_TendonInterface')
+    TendonConnection.addObject('MechanicalObject', name='pointCloud_Tendon', template='Vec3d',showObject=1)
+    TendonConnection.addObject('BarycentricMapping')
+
+    # BackBone Physics Model
+
+    Spring = rootNode.addChild("Spring")
+    Spring.addObject("EulerImplicitSolver")
+    Spring.addObject("SparseLDLSolver",name="solver")
+    Spring.addObject("MeshGmshLoader",name = "SpringLoader", filename = "Mesh/BackBone.msh")
+    Spring.addObject("TetrahedronSetTopologyContainer",name="Springtopo",src="@SpringLoader")
+    Spring.addObject("TetrahedronSetGeometryAlgorithms",name="SpringAlgo",template="Vec3d")
+    Spring.addObject("MechanicalObject",name="SpringObj",template="Vec3d",showObject=1,translation=[0,0,0])
+    Spring.addObject("TetrahedronFEMForceField",name="SFEM",youngModulus=1e6, poissonRatio=0.4,method="large")
+    Spring.addObject('UniformMass', totalMass=100, name='mass')
+    Spring.addObject('LinearSolverConstraintCorrection')
+
+    SpringConnection = Spring.addChild('SpringConnection')
+    SpringConnection.addObject('MeshSTLLoader', filename='Mesh/Tendon_10D_Limited.stl', name='loader')
+    SpringConnection.addObject('MeshTopology', position='@loader.position', triangles='@loader.triangles')
+    SpringConnection.addObject('MechanicalObject', name='pointCloud_Spring', template='Vec3d', showObject=1)
+    SpringConnection.addObject('BarycentricMapping')
+    
+    id_pts=""
+    #print(rootNode.getObject())
+    for i in range(160):
+       id_pts= id_pts+str(i)+" "
+    rootNode.addObject(
+        'BilateralInteractionConstraint', 
+        name='BIC', 
+        template='Vec3d', 
+        object1='@TendonRobot/TendonConnection/pointCloud_Tendon', 
+        object2='@Spring/SpringConnection/pointCloud_Spring', 
+        first_point=id_pts, 
+        second_point=id_pts
+    )
+    rootNode.addChild(TendonRobot)
+    rootNode.addChild(Spring)
+
+    TendonRobot.addObject('BoxROI', name='ROI1', box=[-30, 0, -30, 30, 4, 30], drawBoxes=True)
+    TendonRobot.addObject('RestShapeSpringsForceField', points='@ROI1.indices', stiffness=1e12)
+
+
+    cable1 = Spring.addChild("cable1")
+
+    cable1.addObject('MechanicalObject',
+			position=[
+			[11.5, 1, 11.5],
+            [11.5, 3, 11.5],
+            [11.5,41,11.5],
+            [11.5,43,11.5],
+            [11.5,81,11.5],
+            [11.5,83,11.5],
+            [11.5,121,11.5],
+            [11.5,123,11.5]])
+
+    cable1.addObject('CableConstraint', name="aCableActuator",
+			indices=list(range(0,8)),
+			pullPoint=[11.5, -12.5, 11.5])
+
+    cable1.addObject('BarycentricMapping',mapForces="false", mapMasses="false")
+    cable1.addObject(FingerController(node=cable1))
+
+    cable2 = Spring.addChild("cable2")
+
+    cable2.addObject('MechanicalObject',
+			position=[
+			[11.5, 1, -11.5],
+            [11.5, 3, -11.5],
+            [11.5,41,-11.5],
+            [11.5,43,-11.5],
+            [11.5,81,-11.5],
+            [11.5,83,-11.5],
+            [11.5,121,-11.5],
+            [11.5,123,-11.5]])
+
+    cable2.addObject('CableConstraint', name="aCableActuator2",
+			indices=list(range(0,8)),
+			pullPoint=[11.5, -12.5, -11.5])
+
+    cable2.addObject('BarycentricMapping',mapForces="false", mapMasses="false")
+
+    cable4 = Spring.addChild("cable4")
+
+    cable4.addObject('MechanicalObject',
+			position=[
+			[-11.5, 1,11.5],
+            [-11.5, 3,11.5],
+            [-11.5,41,11.5],
+            [-11.5,43,11.5],
+            [-11.5,81,11.5],
+            [-11.5,83,11.5],
+            [-11.5,121,11.5],
+            [-11.5,123,11.5]])
+
+    cable4.addObject('CableConstraint', name="aCableActuator4",
+			indices=list(range(0,8)),
+			pullPoint=[-11.5, -12.5, 11.5])
+
+    cable4.addObject('BarycentricMapping',mapForces="false", mapMasses="false")
+
+    cable3 = Spring.addChild("cable3")
+
+    cable3.addObject('MechanicalObject',
+			position=[
+			[-11.5, 1, -11.5],
+            [-11.5, 3, -11.5],
+            [-11.5,41,-11.5],
+            [-11.5,43,-11.5],
+            [-11.5,81,-11.5],
+            [-11.5,83,-11.5],
+            [-11.5,121,-11.5],
+            [-11.5,123,-11.5]])
+
+    cable3.addObject('CableConstraint', name="aCableActuator3",
+			indices=list(range(0,8)),
+			pullPoint=[-11.5, -12.5, -11.5])
+
+    cable3.addObject('BarycentricMapping',mapForces="false", mapMasses="false")
+
+    return rootNode

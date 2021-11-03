@@ -1,0 +1,34 @@
+<Node name="root" dt="0.01" gravity="0 0 0">
+    <MeshGmshLoader name="DiskLoader" filename="Mesh/Robot1.msh"/>
+    <Node name="Disk1">
+        <TetrahedronSetTopologyContainer name="topo1" src="@../DiskLoader"/>
+        <TetrahedronSetGeometryAlgorithms template="Vec3d" name="container"/>
+        <Node name="try">
+            <MechanicalObject src="@../../DiskLoader" name="obj1" showObject="1"/>
+            <Node name="MeshROI" >
+                <MeshObjLoader name="ROIloader" filename="Mesh/Spring.obj" translation="0 0 0" rotation="0 0 0"/>
+                <MeshROI name="ROIm"
+                drawROI="0"
+                drawMesh="0"
+                drawBox="0"
+                drawEdges="0"
+                drawTriangles="1"
+                drawTetrahedra="1"
+                drawOut="0"
+                computeMeshROI="1"
+                doUpdate="0"
+                position="@../obj1.position"
+                tetrahedra="@../DiskLoader.tetrahedra"
+                ROIposition="@ROIloader.position"
+                localIndices="1"
+                ROItriangles="@ROIloader.triangles" />
+                <VisualModel name="Visual" color="blue" />
+            </Node>
+            <IndexValueMapper name="ind_Out" indices="@MeshROI/ROIm.tetrahedronOutIndices" value="1e7" />
+            <IndexValueMapper name="ind_Total" inputValues="@ind_Out.outputValues" indices="@MeshROI/ROIm.tetrahedronIndices" value="100" />
+        </Node>
+        <MechanicalObject template="Vec3d" name="obj1" showObject="1"/>
+        <TetrahedronFEMForceField name="FEM" youngModulus="@try/ind_Total.outputValues" poissonRatio="0.49" />
+    </Node>
+</Node>
+

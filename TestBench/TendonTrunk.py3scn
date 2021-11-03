@@ -1,0 +1,70 @@
+import Sofa
+import math
+from stlib3.scene import Scene
+from stlib3.physics.deformable import ElasticMaterialObject
+from stlib3.visuals import VisualModel
+from FingerController import FingerController
+
+def createScene(rootNode):
+    rootNode.addObject("RequiredPlugin",pluginName=["SoftRobots",'SofaConstraint','SofaEngine','SofaLoader','SofaDeformable'])
+    scene = Scene(rootNode,dt=0.01,gravity=[0.0,9810.0,0.0])
+
+    rootNode.addObject("FreeMotionAnimationLoop")
+    rootNode.addObject("GenericConstraintSolver", maxIterations=1000, tolerance=0.001)
+
+    trunk = ElasticMaterialObject(name = "TendonRobot",volumeMeshFileName="trunk.msh",poissonRatio=0.45,youngModulus=450,totalMass=0.042,translation=[0,0,0])
+    rootNode.addChild(trunk)
+    
+    trunk.addObject("BoxROI",name="ROI",box=[-5, -5, 0, 5, 5, 5], drawBoxes=True)
+    trunk.addObject('RestShapeSpringsForceField', points='@ROI1.indices', stiffness=1e12)
+    cable = trunk.addChild("cable")
+    cable.addObject("MechanicalObject", 
+                    position = [
+                                [-7.36,0,25.77],
+                                [-6.97,0,39.27],
+                                [-6.85,0,43.6],
+                                [-6.47,0,56.6],
+                                [-6.34,0,61.12],
+                                [-5.96,0,74.39],
+                                [-5.84,0,78.48],
+                                [-5.46,0,91.98],
+                                [-5.34,0,95.96],
+                                [-4.97,0,108.87],
+                                [-4.99,0,114.32],
+                                [-4.45,0,126.91],
+                                [-4.34,0,130.97],
+                                [-3.94,0,144.87],
+                                [-3.84,0,148.05],
+                                [-3.42,0,162.8],
+                                [-3.34,0,165.22],
+                                [-2.91,0,180.67],
+                                [-2.86,0,182.28],
+                                [-2.5,0,194.99],
+                                [2.5,0,194.99],
+                                [2.86,0,182.28],
+                                [2.91,0,180.67],
+                                [3.34,0,165.22],
+                                [3.42,0,162.8],
+                                [3.84,0,148.05],
+                                [3.94,0,144.87],
+                                [4.34,0,130.97],
+                                [4.45,0,126.91],
+                                [4.99,0,114.32],
+                                [4.97,0,108.87],
+                                [5.34,0,95.96],
+                                [5.46,0,91.98],
+                                [5.84,0,78.48],
+                                [5.96,0,74.39],
+                                [6.34,0,61.12],
+                                [6.47,0,56.6],
+                                [6.85,0,43.6],
+                                [6.97,0,39.27],
+                                [7.36,0,25.77]])
+    cable.addObject('CableConstraint', name="aCableActuator",
+			indices=list(range(0,40)),
+			pullPoint=[-8.1,0,-10])
+    
+    cable.addObject('BarycentricMapping')
+    cable.addObject(FingerController(node=cable))
+
+    return rootNode
