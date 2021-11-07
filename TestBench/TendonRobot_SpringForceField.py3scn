@@ -12,7 +12,7 @@ def createScene(rootNode):
     scene = Scene(rootNode,dt=0.01,gravity=[0,9810,0])
 
     rootNode.addObject("FreeMotionAnimationLoop")
-    rootNode.addObject("GenericConstraintSolver", maxIterations=100, tolerance=0.001)
+    rootNode.addObject("GenericConstraintSolver", maxIterations=1000, tolerance=0.001)
     rootNode.addObject("DefaultPipeline",verbose=0)
     rootNode.addObject("BruteForceDetection")
     rootNode.addObject("MinProximityIntersection", name="Proximity", alarmDistance=1.5, contactDistance=1)
@@ -24,28 +24,28 @@ def createScene(rootNode):
     TendonRobot = rootNode.addChild("TendonRobot")
     TendonRobot.addObject("EulerImplicitSolver")
     TendonRobot.addObject("SparseLDLSolver",name="solver")
-    TendonRobot.addObject("MeshGmshLoader",name = "DiskLoader", filename = "Mesh/Tendon_5D.msh")
+    TendonRobot.addObject("MeshGmshLoader",name = "DiskLoader", filename = "Mesh/Tendon_10D.msh")
     TendonRobot.addObject("TetrahedronSetTopologyContainer",name="topo",src="@DiskLoader")
     TendonRobot.addObject('TetrahedronSetTopologyModifier')
     TendonRobot.addObject("TetrahedronSetGeometryAlgorithms",name="DiskAlgo",template="Vec3d")
     TendonRobot.addObject("MechanicalObject",name="DiskObj",template="Vec3d",showObject=1)
-    TendonRobot.addObject("TetrahedronFEMForceField",name="FEM",youngModulus=1e10, poissonRatio=0.01,method="large")
-    TendonRobot.addObject('UniformMass', totalMass=1, name='mass')
+    TendonRobot.addObject("TetrahedronFEMForceField",name="FEM",youngModulus=1e8, poissonRatio=0.1,method="large")
+    TendonRobot.addObject('UniformMass', totalMass=100, name='mass')
     TendonRobot.addObject('LinearSolverConstraintCorrection')
 
     # Collision Model
 
     TendonCollision = TendonRobot.addChild("TendonCollision")
-    TendonCollision.addObject("MeshGmshLoader",name = "DiskCollLoader", filename = "Mesh/Tendon_5D.msh")
+    TendonCollision.addObject("MeshGmshLoader",name = "DiskCollLoader", filename = "Mesh/Tendon_10D.msh")
     TendonCollision.addObject("MeshTopology", src="@DiskCollLoader")
     TendonCollision.addObject("MechanicalObject", name="CollisionMO",scale="1.0")
-    TendonCollision.addObject("TetrahedronCollisionModel", name="CollisionModel",contactStiffness="3")
+    TendonCollision.addObject("TriangleCollisionModel", name="CollisionModel",contactStiffness="3")
     TendonCollision.addObject("BarycentricMapping", name="CollisionMapping", input="@../DiskObj", output="@CollisionMO")
 
     # Disk Interface Model
 
     TendonConnection = TendonRobot.addChild("TendonConnection")
-    TendonConnection.addObject("MeshSTLLoader",filename='Mesh/Tendon_5D_Limited.stl', name='loader')
+    TendonConnection.addObject("MeshSTLLoader",filename='Mesh/Tendon_10D_Limited.stl', name='loader')
     TendonConnection.addObject("MeshTopology",position='@loader.position', triangles='@loader.triangles', name='mesh_TendonInterface')
     TendonConnection.addObject('MechanicalObject', name='pointCloud_Tendon', template='Vec3d',showObject=1)
     TendonConnection.addObject('BarycentricMapping')
@@ -55,23 +55,23 @@ def createScene(rootNode):
     Spring = rootNode.addChild("Spring")
     Spring.addObject("EulerImplicitSolver")
     Spring.addObject("SparseLDLSolver",name="solver")
-    Spring.addObject("MeshGmshLoader",name = "SpringLoader", filename = "Mesh/BackBone_5D.msh")
+    Spring.addObject("MeshGmshLoader",name = "SpringLoader", filename = "Mesh/BackBone.msh")
     Spring.addObject("TetrahedronSetTopologyContainer",name="Springtopo",src="@SpringLoader")
     Spring.addObject("TetrahedronSetGeometryAlgorithms",name="SpringAlgo",template="Vec3d")
     Spring.addObject("MechanicalObject",name="SpringObj",template="Vec3d",showObject=1,translation=[0,0,0])
-    Spring.addObject("TetrahedronFEMForceField",name="SFEM",youngModulus=18e5, poissonRatio=0.33,method="large")
-    Spring.addObject('UniformMass', totalMass=63, name='mass')
+    Spring.addObject("MeshSpringForceField",name="SFEM",template="Vec3d", tetrahedraStiffness=5e6)
+    Spring.addObject('UniformMass', totalMass=100, name='mass')
     Spring.addObject('LinearSolverConstraintCorrection')
 
     SpringConnection = Spring.addChild('SpringConnection')
-    SpringConnection.addObject('MeshSTLLoader', filename='Mesh/Tendon_5D_Limited.stl', name='loader')
+    SpringConnection.addObject('MeshSTLLoader', filename='Mesh/Tendon_10D_Limited.stl', name='loader')
     SpringConnection.addObject('MeshTopology', position='@loader.position', triangles='@loader.triangles')
     SpringConnection.addObject('MechanicalObject', name='pointCloud_Spring', template='Vec3d', showObject=1)
     SpringConnection.addObject('BarycentricMapping')
     
     id_pts=""
     #print(rootNode.getObject())
-    for i in range(180):
+    for i in range(160):
        id_pts= id_pts+str(i)+" "
     rootNode.addObject(
         'BilateralInteractionConstraint', 
@@ -92,22 +92,20 @@ def createScene(rootNode):
     noDisks = 4
     segLength = 125
     diskThickness = 4
-    diskRadius = 20
+    diskRadius = 30
     length = (segLength-noDisks*diskThickness)/(noDisks-1)
     cablePos = []
     for i in range(int(360/cableAngle)):
         cablePos.append([])
-        #cablePos.append([(diskRadius-3)*math.cos(math.radians(cableAngle/2+(i-1)*cableAngle)),diskThickness/2+(noDisks-1)*(diskThickness+length),(diskRadius-3)*math.sin(math.radians(cableAngle/2+(i-1)*cableAngle))])
         for j in range(noDisks):
-            cablePos[i].append([(diskRadius-3)*math.cos(math.radians(cableAngle/2+(i-1)*cableAngle)),diskThickness/2+j*(diskThickness+length),(diskRadius-3)*math.sin(math.radians(cableAngle/2+(i-1)*cableAngle))])
-            #cablePos[i].append([(diskRadius-3)*math.cos(math.radians(cableAngle/2+(i-1)*cableAngle)),diskThickness/2+1+j*(diskThickness+length),(diskRadius-3)*math.sin(math.radians(cableAngle/2+(i-1)*cableAngle))])
+            cablePos[i].append([(diskRadius-3)*math.cos(math.radians(cableAngle/2+(i-1)*cableAngle)),diskThickness/2-1+j*(diskThickness+length),(diskRadius-3)*math.sin(math.radians(cableAngle/2+(i-1)*cableAngle))])
+            cablePos[i].append([(diskRadius-3)*math.cos(math.radians(cableAngle/2+(i-1)*cableAngle)),diskThickness/2+1+j*(diskThickness+length),(diskRadius-3)*math.sin(math.radians(cableAngle/2+(i-1)*cableAngle))])
 
 
     for i in range(int(360/cableAngle)):
         cable = TendonRobot.addChild("cable"+str(i+1))
         cable.addObject("MechanicalObject",position=cablePos[i])
-        #cable.addObject("CableConstraint",name="aCableActuator",indices=[0],pullPoint=[cablePos[i][0],-12.5,cablePos[i][2]],maxPositiveDisp=40,maxDispVariation=1,minForce=0)
-        cable.addObject("CableConstraint",name="aCableActuator",indices=list(range(len(cablePos[i]))),pullPoint=[cablePos[i][0][0],-12.5,cablePos[i][0][2]],maxPositiveDisp=100,maxDispVariation=1,minForce=0)
+        cable.addObject("CableConstraint",name="aCableActuator",indices=list(range(len(cablePos[i]))),pullPoint=[cablePos[i][0][0],-12.5,cablePos[i][0][2]])
         cable.addObject('BarycentricMapping',mapForces="false", mapMasses="false")
         if i==0:
             cable.addObject(FingerController(node=cable))
