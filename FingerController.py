@@ -6,7 +6,7 @@ from Sofa.constants import *
 
 class FingerController(Sofa.Core.Controller):
     """
-    This Controller simply takes the cableActuator's value
+    This Controller simply takes the cableActuator's value in length
     and increases / decreases it depending on the pressed key ('+' or '-')
     """
     def __init__(self, *a, **kw):
