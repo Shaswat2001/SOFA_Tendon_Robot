@@ -62,7 +62,7 @@ def createScene(rootNode):
     Spring.addObject("TetrahedronFEMForceField",name="SFEM",youngModulus=1e6, poissonRatio=0.4,method="large")
     Spring.addObject('UniformMass', totalMass=100, name='mass')
     Spring.addObject('LinearSolverConstraintCorrection')
-
+    
     SpringConnection = Spring.addChild('SpringConnection')
     SpringConnection.addObject('MeshSTLLoader', filename='Mesh/8Disk_4D.stl', name='loader')
     SpringConnection.addObject('MeshTopology', position='@loader.position', triangles='@loader.triangles')
@@ -101,7 +101,7 @@ def createScene(rootNode):
             cablePos[i].append([(diskRadius-3)*math.cos(math.radians(cableAngle/2+(i-1)*cableAngle)),diskThickness/2-1+j*(diskThickness+length),(diskRadius-3)*math.sin(math.radians(cableAngle/2+(i-1)*cableAngle))])
             cablePos[i].append([(diskRadius-3)*math.cos(math.radians(cableAngle/2+(i-1)*cableAngle)),diskThickness/2+1+j*(diskThickness+length),(diskRadius-3)*math.sin(math.radians(cableAngle/2+(i-1)*cableAngle))])
 
-
+    # Loop for tendons
     for i in range(int(360/cableAngle)):
         cable = Spring.addChild("cable"+str(i+1))
         cable.addObject("MechanicalObject",position=cablePos[i])
